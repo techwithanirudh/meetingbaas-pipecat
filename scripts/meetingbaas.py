@@ -83,7 +83,7 @@ def main():
     parser.add_argument("--meeting-url", required=True, help="The meeting URL (must start with https://)")
     parser.add_argument("--ngrok-url", required=True, help="The ngrok URL (must start with https://)")
     parser.add_argument("--bot-name", required=False, default="Teacher", help="The name of the bot which is going to join the meeting.")
-    parser.add_argument("--bot-image", required=False, default="https://utfs.io/f/dvmZj7IPboXItfgbYN3fapy07gFYwMHGebAkQB43UCtNx1JZ", help="The image of the bot which is going to join the meeting.")
+    parser.add_argument("--bot-image", required=False, default="https://utfs.io/f/N2K2zOxB65Cx6UOeGHsoI9OHcetbNxLZB2ErqhAzDfFlMXYK", help="The image of the bot which is going to join the meeting.")
 
     args = parser.parse_args()
 
