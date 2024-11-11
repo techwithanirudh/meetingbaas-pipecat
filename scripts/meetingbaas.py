@@ -33,7 +33,7 @@ def signal_handler(signum, frame):
     exit(0)
 
 # Set up bot configuration
-def create_bot(meeting_url, ngrok_wss):
+def create_bot(meeting_url, ngrok_wss, bot_name, bot_image):
     url = "https://api.meetingbaas.com/bots"
     headers = {
         "Content-Type": "application/json",
@@ -43,9 +43,9 @@ def create_bot(meeting_url, ngrok_wss):
     deduplication_key = str(uuid.uuid4())
     config = {
         "meeting_url": meeting_url,
-        "bot_name": "Speaking AI Chatbot",
+        "bot_name": bot_name,
         "recording_mode": "speaker_view",
-        "bot_image": "https://utfs.io/f/N2K2zOxB65CxF9Bzfz7cD1eM6nSjyltLm7GrzI4xWNhavZUp",
+        "bot_image": bot_image,
         "entry_message": "I'm ready, you can talk to start chatting!",
         "reserved": False,
         "speech_to_text": {"provider": "Default"},
@@ -82,13 +82,16 @@ def main():
     parser = argparse.ArgumentParser(description="Meeting BaaS Bot")
     parser.add_argument("--meeting-url", required=True, help="The meeting URL (must start with https://)")
     parser.add_argument("--ngrok-url", required=True, help="The ngrok URL (must start with https://)")
+    parser.add_argument("--bot-name", required=False, default="Teacher", help="The name of the bot which is going to join the meeting.")
+    parser.add_argument("--bot-image", required=False, default="https://utfs.io/f/dvmZj7IPboXItfgbYN3fapy07gFYwMHGebAkQB43UCtNx1JZ", help="The image of the bot which is going to join the meeting.")
+
     args = parser.parse_args()
 
     meeting_url, ngrok_wss = get_user_input(args.meeting_url, args.ngrok_url)
 
     while True:
         try:
-            bot_id = create_bot(meeting_url, ngrok_wss)
+            bot_id = create_bot(meeting_url, ngrok_wss, args.bot_name, args.bot_image)
             signal_handler.current_bot_id = bot_id
 
             if not bot_id:
