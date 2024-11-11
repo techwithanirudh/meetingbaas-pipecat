@@ -46,7 +46,9 @@ async def main():
 
     llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4o")
 
-    stt = DeepgramSTTService(api_key=os.getenv("DEEPGRAM_API_KEY"), encoding="linear16",         sample_rate=16000)
+    stt = DeepgramSTTService(
+        api_key=os.getenv("DEEPGRAM_API_KEY"), encoding="linear16", sample_rate=16000
+    )
 
     tts = CartesiaTTSService(
         api_key=os.getenv("CARTESIA_API_KEY"),
@@ -81,7 +83,9 @@ async def main():
     @transport.event_handler("on_client_connected")
     async def on_client_connected(transport, client):
         # Kick off the conversation.
-        messages.append({"role": "system", "content": "Please introduce yourself to the user."})
+        messages.append(
+            {"role": "system", "content": "Please introduce yourself to the user."}
+        )
         await task.queue_frames([LLMMessagesFrame(messages)])
 
     runner = PipelineRunner()
