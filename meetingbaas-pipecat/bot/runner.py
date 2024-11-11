@@ -8,6 +8,12 @@ async def configure(
     if not parser:
         parser = argparse.ArgumentParser(description="Pipecat SDK AI Bot")
     parser.add_argument(
+        "--host", type=str, default="0.0.0.0", help="Host to bind the server to"
+    )
+    parser.add_argument(
+        "-p", "--port", type=int, default=8766, help="Port to run the server on"
+    )
+    parser.add_argument(
         "--system-prompt", type=str, required=False, help="Prompt of the AI Bot"
     )
     parser.add_argument(
@@ -38,4 +44,4 @@ You can respond to questions about the weather using the get_weather tool.
             "No Cartesia voice ID. use the -v/--voice-id option from the command line, or set CARTESIA_API_KEY in your environment to specify a Cartesia voice ID."
         )
 
-    return (system_prompt, voice_id, args)
+    return (args.host, args.port, system_prompt, voice_id, args)

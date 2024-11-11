@@ -71,16 +71,18 @@ async def get_time(
 
 
 async def main():
-    (system_prompt, voice_id, args) = await configure()
+    (system_prompt, voice_id, host, port, args) = await configure()
 
     transport = WebsocketServerTransport(
+        host=host,
+        port=port,
         params=WebsocketServerParams(
             audio_out_sample_rate=16000,
             audio_out_enabled=True,
             add_wav_header=False,
             vad_enabled=True,
             vad_analyzer=SileroVADAnalyzer(),
-            vad_audio_passthrough=True,
+            vad_audio_passthrough=True
         )
     )
 
