@@ -19,6 +19,7 @@ pipecat-ai = {extras = ["cartesia", "deepgram", "openai", "silero", "websocket"]
 ruff = "^0.7.3"
 pytz = "^2024.2"
 aiohttp = "^3.10.10"
+ngrok = "^1.4.0"
 
 [tool.poetry.group.dev.dependencies]
 grpcio-tools = "<=1.67.1"
