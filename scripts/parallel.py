@@ -8,7 +8,10 @@ import os
 import sys
 import threading
 import queue
+import asyncio
 from datetime import datetime
+from contextlib import suppress
+from typing import Dict, List, Tuple, Optional
 
 from dotenv import load_dotenv
 load_dotenv(override=True)
@@ -17,25 +20,31 @@ logger.remove()
 logger.add(sys.stderr, level="INFO")
 
 class ProcessLogger:
-    def __init__(self, process_name, process):
+    def __init__(self, process_name: str, process: subprocess.Popen):
         self.process_name = process_name
         self.process = process
-        self.stdout_queue = queue.Queue()
-        self.stderr_queue = queue.Queue()
+        self.stdout_queue: queue.Queue = queue.Queue()
+        self.stderr_queue: queue.Queue = queue.Queue()
+        self._stop_event = threading.Event()
         
-    def log_output(self, pipe, queue, is_error=False):
-        """Read output from pipe and put it in queue"""
-        for line in iter(pipe.readline, ''):
-            line = line.strip()
-            if line:
-                queue.put(line)
-                if is_error:
-                    logger.error(f"[{self.process_name}] {line}")
-                else:
-                    logger.info(f"[{self.process_name}] {line}")
-        pipe.close()
+    def log_output(self, pipe, queue: queue.Queue, is_error: bool = False) -> None:
+        """Log output from a pipe to a queue and logger"""
+        try:
+            for line in iter(pipe.readline, ''):
+                if self._stop_event.is_set():
+                    break
+                line = line.strip()
+                if line:
+                    queue.put(line)
+                    log_msg = f"[{self.process_name}] {line}"
+                    if is_error:
+                        logger.error(log_msg)
+                    else:
+                        logger.info(log_msg)
+        finally:
+            pipe.close()
 
-    def start_logging(self):
+    def start_logging(self) -> Tuple[threading.Thread, threading.Thread]:
         """Start logging threads for stdout and stderr"""
         stdout_thread = threading.Thread(
             target=self.log_output,
@@ -51,14 +60,30 @@ class ProcessLogger:
         stderr_thread.start()
         return stdout_thread, stderr_thread
 
+    def stop(self) -> None:
+        """Stop the logging threads gracefully"""
+        self._stop_event.set()
+
 class BotProxyManager:
     def __init__(self):
-        self.processes = {}  # Dictionary to store processes and their loggers
-        self.listeners = []
+        self.processes: Dict = {}
+        self.listeners: List = []
         self.start_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.shutdown_event = asyncio.Event()
         
-    def run_command(self, command, process_name):
-        """Run a command and show its output in real-time"""
+    async def create_ngrok_tunnel(self, port: int, name: str) -> Optional[]:
+        """Create an ngrok tunnel for the given port"""
+        try:
+            logger.info(f"Creating ngrok tunnel for {name} on port {port}")
+            listener = await ngrok.forward(port, authtoken_from_env=True)
+            logger.success(f"Created ngrok tunnel for {name}: {listener.url()}")
+            return listener
+        except Exception as e:
+            logger.error(f"Error creating ngrok tunnel for {name}: {e}")
+            return None
+
+    def run_command(self, command: str, process_name: str) -> Optional[subprocess.Popen]:
+        """Run a command and set up logging for its output"""
         try:
             logger.info(f"Starting process: {process_name} with command: {command}")
             process = subprocess.Popen(
@@ -71,7 +96,6 @@ class BotProxyManager:
                 universal_newlines=True
             )
             
-            # Create and start process logger
             process_logger = ProcessLogger(process_name, process)
             stdout_thread, stderr_thread = process_logger.start_logging()
             
@@ -87,26 +111,28 @@ class BotProxyManager:
             logger.error(f"Error starting process {process_name}: {e}")
             return None
 
-    def create_ngrok_tunnel(self, port, name):
-        """Create an ngrok tunnel for the given port"""
-        try:
-            logger.info(f"Creating ngrok tunnel for {name} on port {port}")
-            listener = ngrok.forward(port, authtoken_from_env=True)
-            logger.success(f"Created ngrok tunnel for {name}: {listener.url()}")
-            return listener
-        except Exception as e:
-            logger.error(f"Error creating ngrok tunnel for {name}: {e}")
-            return None
-
-    def cleanup(self):
+    async def cleanup(self) -> None:
         """Cleanup all processes and tunnels"""
         logger.info("Initiating cleanup of all processes and tunnels...")
         
-        # Terminate all processes
+        # First close ngrok tunnels
+        for listener in self.listeners:
+            try:
+                tunnel_url = listener.url()
+                logger.info(f"Closing ngrok tunnel: {tunnel_url}")
+                with suppress(Exception):
+                    await listener.close()
+                logger.success(f"Successfully closed ngrok tunnel: {tunnel_url}")
+            except Exception as e:
+                logger.error(f"Error closing ngrok tunnel: {e}")
+        
+        # Then terminate all processes
         for name, process_info in self.processes.items():
             process = process_info['process']
+            process_logger = process_info['logger']
             try:
                 logger.info(f"Terminating process: {name}")
+                process_logger.stop()  # Stop logging threads gracefully
                 process.terminate()
                 try:
                     process.wait(timeout=5)
@@ -118,17 +144,24 @@ class BotProxyManager:
                     logger.success(f"Process {name} force killed")
             except Exception as e:
                 logger.error(f"Error terminating process {name}: {e}")
-        
-        # Close all ngrok tunnels
-        for listener in self.listeners:
-            try:
-                logger.info(f"Closing ngrok tunnel: {listener.url()}")
-                listener.close()
-                logger.success(f"Closed ngrok tunnel: {listener.url()}")
-            except Exception as e:
-                logger.error(f"Error closing ngrok tunnel: {e}")
 
-    def main(self):
+    async def monitor_processes(self) -> None:
+        """Monitor running processes and handle failures"""
+        while not self.shutdown_event.is_set():
+            try:
+                for name, process_info in list(self.processes.items()):
+                    process = process_info['process']
+                    if process.poll() is not None:
+                        logger.warning(f"Process {name} exited with code: {process.returncode}")
+                        # Could add restart logic here if needed
+                await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Error monitoring processes: {e}")
+                await asyncio.sleep(1)
+
+    async def async_main(self) -> None:
         parser = argparse.ArgumentParser(description='Run bot and proxy command pairs with ngrok tunnels')
         parser.add_argument('-c', '--count', type=int, required=True,
                           help='Number of bot-proxy pairs to run')
@@ -136,13 +169,11 @@ class BotProxyManager:
                           help='Starting port number (default: 8765)')
         args = parser.parse_args()
 
-        # Get meeting URL from user
         meeting_url = input("Please enter the meeting URL: ")
         if not meeting_url:
             logger.error("Meeting URL is required")
             return
 
-        # Ensure NGROK_AUTHTOKEN is set
         if not os.getenv("NGROK_AUTHTOKEN"):
             logger.error("NGROK_AUTHTOKEN environment variable is not set")
             return
@@ -154,67 +185,91 @@ class BotProxyManager:
             
             for i in range(args.count):
                 pair_num = i + 1
+                
                 # Start bot
                 bot_port = current_port
-                bot_command = f"poetry run bot -p {bot_port}"
                 bot_name = f"bot_{pair_num}"
-                logger.info(f"Starting {bot_name} on port {bot_port}")
-                bot_process = self.run_command(bot_command, bot_name)
+                bot_process = self.run_command(f"poetry run bot -p {bot_port}", bot_name)
                 if not bot_process:
                     continue
                 
-                time.sleep(1)  # Small delay between bot and proxy
+                await asyncio.sleep(1)
                 
                 # Start proxy
                 proxy_port = current_port + 1
-                proxy_command = f"poetry run proxy -p {proxy_port} --websocket-url ws://localhost:{bot_port}"
                 proxy_name = f"proxy_{pair_num}"
-                logger.info(f"Starting {proxy_name} on port {proxy_port}")
-                proxy_process = self.run_command(proxy_command, proxy_name)
+                proxy_process = self.run_command(
+                    f"poetry run proxy -p {proxy_port} --websocket-url ws://localhost:{bot_port}",
+                    proxy_name
+                )
                 if not proxy_process:
                     logger.error(f"Failed to start {proxy_name}, terminating {bot_name}")
                     self.processes[bot_name]['process'].terminate()
                     continue
                 
                 # Create ngrok tunnel for the proxy
-                listener = self.create_ngrok_tunnel(proxy_port, f"tunnel_{pair_num}")
+                listener = await self.create_ngrok_tunnel(proxy_port, f"tunnel_{pair_num}")
                 if listener:
                     self.listeners.append(listener)
-                    # Start meetingbaas with the ngrok URL
-                    meeting_command = f"poetry run meetingbaas --meeting-url {meeting_url} --ngrok-url {listener.url()}"
                     meeting_name = f"meeting_{pair_num}"
-                    logger.info(f"Starting {meeting_name}")
-                    meeting_process = self.run_command(meeting_command, meeting_name)
+                    meeting_process = self.run_command(
+                        f"poetry run meetingbaas --meeting-url {meeting_url} --ngrok-url {listener.url()}",
+                        meeting_name
+                    )
                     if not meeting_process:
                         logger.error(f"Failed to start {meeting_name}")
                 
                 current_port += 2
-                time.sleep(1)
+                await asyncio.sleep(1)
             
             logger.success(f"Successfully started {args.count} bot-proxy pairs with ngrok tunnels")
             logger.info("Press Ctrl+C to stop all processes and close tunnels")
             
-            # Monitor processes and their status
-            while True:
-                for name, process_info in list(self.processes.items()):
-                    process = process_info['process']
-                    if process.poll() is not None:
-                        logger.warning(f"Process {name} exited with code: {process.returncode}")
-                        # Optional: implement retry logic here if needed
-                time.sleep(1)
+            # Start process monitor
+            monitor_task = asyncio.create_task(self.monitor_processes())
+            
+            try:
+                await self.shutdown_event.wait()
+            except asyncio.CancelledError:
+                logger.info("\nReceived shutdown signal")
+            finally:
+                self.shutdown_event.set()
+                await monitor_task
                 
         except KeyboardInterrupt:
             logger.info("\nReceived shutdown signal (Ctrl+C)")
         except Exception as e:
             logger.error(f"Unexpected error: {e}")
         finally:
-            self.cleanup()
+            await self.cleanup()
             logger.success("Cleanup completed successfully")
 
+    def main(self) -> None:
+        """Main entry point with proper signal handling"""
+        try:
+            if sys.platform != 'win32':
+                # Set up signal handlers for Unix-like systems
+                import signal
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                def signal_handler():
+                    self.shutdown_event.set()
+                    
+                loop.add_signal_handler(signal.SIGINT, signal_handler)
+                loop.add_signal_handler(signal.SIGTERM, signal_handler)
+                
+                try:
+                    loop.run_until_complete(self.async_main())
+                finally:
+                    loop.close()
+            else:
+                # Windows doesn't support loop.add_signal_handler
+                asyncio.run(self.async_main())
+        except Exception as e:
+            logger.exception(f"Fatal error in main program: {e}")
+            sys.exit(1)
+
 if __name__ == "__main__":
-    try:
-        manager = BotProxyManager()
-        manager.main()
-    except Exception as e:
-        logger.exception(f"Fatal error in main program: {e}")
-        sys.exit(1)
+    manager = BotProxyManager()
+    manager.main()
