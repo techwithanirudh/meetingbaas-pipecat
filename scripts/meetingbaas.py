@@ -130,7 +130,7 @@ def main():
     parser = argparse.ArgumentParser(description="Meeting BaaS Bot")
     parser.add_argument("--meeting-url", help="The meeting URL (must start with https://)")
     parser.add_argument("--ngrok-url", help="The ngrok URL (must start with https://)")
-    parser.add_argument("--bot-name", default="Teacher", help="The name of the bot which is going to join the meeting.")
+    parser.add_argument("--bot-name", default="Speaking MeetingBaas Bot", help="The name of the bot which is going to join the meeting.")
     parser.add_argument("--bot-image", default="https://utfs.io/f/N2K2zOxB65Cx6UOeGHsoI9OHcetbNxLZB2ErqhAzDfFlMXYK", help="The image of the bot which is going to join the meeting.")
 
     args = parser.parse_args()
