@@ -24,7 +24,6 @@ async def configure(
     )
 
     args, unknown = parser.parse_known_args()
-
     system_prompt = (
         args.system_prompt
         or """\

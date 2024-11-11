@@ -71,7 +71,7 @@ async def get_time(
 
 
 async def main():
-    (system_prompt, voice_id, host, port, args) = await configure()
+    (host, port, system_prompt, voice_id, args) = await configure()
 
     transport = WebsocketServerTransport(
         host=host,
