@@ -92,8 +92,10 @@ async def main():
 
     await runner.run(task)
 
+
 def start():
     asyncio.run(main())
+
 
 if __name__ == "__main__":
     start()

@@ -21,6 +21,10 @@ ruff = "^0.7.3"
 [tool.poetry.group.dev.dependencies]
 grpcio-tools = "<=1.67.1"
 
+[tool.ruff]
+line-length = 88
+indent-width = 4
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
