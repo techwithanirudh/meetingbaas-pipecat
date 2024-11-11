@@ -45,10 +45,10 @@ def create_bot(meeting_url, ngrok_wss):
     deduplication_key = str(uuid.uuid4())
     config = {
         "meeting_url": meeting_url,
-        "bot_name": "AI Notetaker",
+        "bot_name": "Speaking AI Chatbot",
         "recording_mode": "speaker_view",
         "bot_image": "https://example.com/bot.jpg",
-        "entry_message": "I am a good meeting bot :)",
+        "entry_message": "I'm ready, you can talk to start chatting!",  
         "reserved": False,
         "speech_to_text": {
             "provider": "Default"
