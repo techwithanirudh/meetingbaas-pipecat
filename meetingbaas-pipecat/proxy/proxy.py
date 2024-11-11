@@ -73,9 +73,10 @@ async def forward_audio(websocket):
                             logger.error(f"Error processing client frame: {str(e)}")
                             logger.exception(e)
                     else:
-                        logger.warning(
-                            f"Received non-bytes message: {type(message)}, ignoring."
-                        )
+                        # logger.debug(
+                        #     f"Received non-bytes message: {type(message)}, ignoring."
+                        # )
+                        logger.info(f"Received non-bytes message: {message}, ignoring")
             except Exception as e:
                 logger.error(f"Error in client message handler: {str(e)}")
                 logger.exception(e)
