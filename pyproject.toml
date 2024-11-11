@@ -8,8 +8,8 @@ readme = "README.md"
 packages = [{include = "meetingbaas-pipecat"}]
 
 [tool.poetry.scripts]
-bot = "meetingbaas-pipecat.bot.__main__:start"
-proxy = "meetingbaas-pipecat.proxy.__main__:start"
+bot = "meetingbaas-pipecat.bot.bot:start"
+proxy = "meetingbaas-pipecat.proxy.cli:start"
 meetingbaas = "scripts.meetingbaas:main"
 
 [tool.poetry.dependencies]

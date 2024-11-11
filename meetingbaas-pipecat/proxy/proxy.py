@@ -110,13 +110,8 @@ async def main():
         server.close()
         await server.wait_closed()
 
-
-def start():
-    asyncio.run(main())
-
-
 if __name__ == "__main__":
     try:
-        start()
+        asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Server shutdown complete.")
