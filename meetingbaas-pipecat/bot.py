@@ -50,8 +50,8 @@ async def main():
 
     tts = CartesiaTTSService(
         api_key=os.getenv("CARTESIA_API_KEY"),
-        voice_id=os.getenv("CARTESIA_VOICE_ID"),  # British Lady
-        # sample_rate=16000,
+        voice_id=os.getenv("CARTESIA_VOICE_ID"),
+        sample_rate=16000,
     )
 
     messages = [
