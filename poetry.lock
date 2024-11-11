@@ -1398,7 +1398,7 @@ pydantic = ">=2.8.2,<2.9.0"
 pyloudnorm = ">=0.1.1,<0.2.0"
 python-deepcompare = {version = ">=1.0.1,<1.1.0", optional = true, markers = "extra == \"openai\""}
 resampy = ">=0.4.3,<0.5.0"
-websockets = {version = ">=13.1,<14.0", optional = true, markers = "extra == \"cartesia\" or extra == \"openai\" or extra == \"websocket\""}
+websockets = {version = ">=13.1,<14.0", optional = true, markers = "extra == \"cartesia\" or extra == \"gladia\" or extra == \"openai\" or extra == \"websocket\""}
 
 [package.extras]
 anthropic = ["anthropic (>=0.34.0,<0.35.0)"]
@@ -2218,4 +2218,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "6d575e96058347814b33de82d47a4994e1da3a59351d07496d6398111e7625c3"
+content-hash = "397ff6a9e531c6d2c451d6995dd91d8095c0a229ed15897f031931423dd70fdc"

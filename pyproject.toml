@@ -10,7 +10,7 @@ packages = [{include = "meetingbaas-pipecat"}]
 [tool.poetry.dependencies]
 python = "^3.11"
 python-dotenv = "^1.0.1"
-pipecat-ai = {extras = ["cartesia", "deepgram", "openai", "silero", "websocket"], version = "^0.0.48"}
+pipecat-ai = {extras = ["cartesia", "deepgram", "openai", "gladia", "silero", "websocket"], version = "^0.0.48"}
 
 [tool.poetry.group.dev.dependencies]
 grpcio-tools = "<=1.67.1"
