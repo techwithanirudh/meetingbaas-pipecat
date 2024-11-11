@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "meetingbaas-pipecat"
+version = "0.1.0"
+description = "A bot that uses MeetingBaas APIs and pipecat's WebsocketServerTransport to join and actively participate in online meetings."
+authors = ["Anirudh Sriram <hello@techwithanirudh.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "meetingbaas-pipecat"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+python-dotenv = "^1.0.1"
+pipecat-ai = {extras = ["cartesia", "deepgram", "openai", "silero", "websocket"], version = "^0.0.48"}
+
+[tool.poetry.group.dev.dependencies]
+grpcio-tools = "<=1.67.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
