@@ -7,7 +7,6 @@ import sys
 def run_command(command):
     """Run a command and show its output in real-time"""
     try:
-        # Using stdout=None to inherit parent's stdout/stderr
         process = subprocess.Popen(
             command,
             shell=True,
@@ -21,9 +20,9 @@ def run_command(command):
         return None
 
 def main():
-    parser = argparse.ArgumentParser(description='Run bot and proxy commands')
+    parser = argparse.ArgumentParser(description='Run bot and proxy command pairs')
     parser.add_argument('-c', '--count', type=int, required=True,
-                       help='Number of instances to run for each type')
+                       help='Number of bot-proxy pairs to run')
     parser.add_argument('-s', '--start-port', type=int, default=8765,
                        help='Starting port number (default: 8765)')
     args = parser.parse_args()
@@ -32,33 +31,37 @@ def main():
     current_port = args.start_port
 
     try:
-        # Start bot processes
-        print("\nStarting bot processes...")
+        print("\nStarting bot-proxy pairs...")
         for i in range(args.count):
-            command = f"poetry run bot -p {current_port}"
-            print(f"\nStarting bot on port {current_port}")
-            process = run_command(command)
-            if process:
-                processes.append(process)
+            # Start bot
+            bot_port = current_port
+            bot_command = f"poetry run bot -p {bot_port}"
+            print(f"\nStarting bot on port {bot_port}")
+            bot_process = run_command(bot_command)
+            if bot_process:
+                processes.append(bot_process)
             else:
-                print(f"Failed to start bot process on port {current_port}")
-            current_port += 1
-            time.sleep(1)  # Add small delay between starts
+                print(f"Failed to start bot process on port {bot_port}")
+                continue
 
-        # Start proxy processes
-        print("\nStarting proxy processes...")
-        for i in range(args.count):
-            command = f"poetry run proxy -p {current_port}"
-            print(f"\nStarting proxy on port {current_port}")
-            process = run_command(command)
-            if process:
-                processes.append(process)
+            time.sleep(1)  # Small delay between bot and proxy
+
+            # Start proxy pointing to the bot
+            proxy_port = current_port + 1
+            proxy_command = f"poetry run proxy -p {proxy_port} --websocket-url ws://localhost:{bot_port}"
+            print(f"Starting proxy on port {proxy_port} connected to bot on port {bot_port}")
+            proxy_process = run_command(proxy_command)
+            if proxy_process:
+                processes.append(proxy_process)
             else:
-                print(f"Failed to start proxy process on port {current_port}")
-            current_port += 1
-            time.sleep(1)  # Add small delay between starts
+                print(f"Failed to start proxy process on port {proxy_port}")
+                bot_process.terminate()
+                continue
 
-        print(f"\nAll processes started ({args.count} bots and {args.count} proxies)")
+            current_port += 2  # Increment by 2 for next pair
+            time.sleep(1)  # Delay before next pair
+
+        print(f"\nAll {args.count} bot-proxy pairs started")
         print("Press Ctrl+C to stop all processes.")
         
         # Wait for all processes
