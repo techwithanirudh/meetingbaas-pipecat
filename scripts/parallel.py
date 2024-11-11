@@ -71,7 +71,7 @@ class BotProxyManager:
         self.start_time = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.shutdown_event = asyncio.Event()
         
-    async def create_ngrok_tunnel(self, port: int, name: str) -> Optional[]:
+    async def create_ngrok_tunnel(self, port: int, name: str) -> Optional[ngrok.Listener]:
         """Create an ngrok tunnel for the given port"""
         try:
             logger.info(f"Creating ngrok tunnel for {name} on port {port}")
