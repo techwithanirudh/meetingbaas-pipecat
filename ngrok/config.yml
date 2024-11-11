@@ -1,0 +1,9 @@
+version: "3"
+
+tunnels:
+  proxy1:
+    proto: http
+    addr: 8766
+  proxy2:
+    proto: http
+    addr: 8768
