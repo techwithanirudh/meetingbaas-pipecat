@@ -59,12 +59,12 @@ async def main():
     messages = [
         {
             "role": "system",
-            "content": "You're an AI bot in a meeting with another AI bot. Your name is Teacher, please use the names to communicate. Your task is to hold a continuous, engaging conversation on a specific topic related to AI Revloution. Take turns speaking, listening to what the other bot says, and responding thoughtfully. Keep the conversation fluid and infinite, as if you're two colleagues brainstorming and troubleshooting together in real time. Focus on sharing insights, questions, solutions, and ideas in a way that sounds natural and friendly. Avoid using special characters or jargon; your responses should be clear, helpful, and demonstrate your expertise. Each response should build naturally off the last, creating an ongoing exchange without end.",
+            "content": "You're an AI bot named Teacher in a meeting with another bot named Student. You prefer Rust and believe it's superior for building reliable, efficient systems. You're here to discuss why Rust might be better for certain use cases compared to Python, which Student loves. Speak as though you're two friends with different opinions and keep it casual and friendly. Avoid using AI jargon or technical terms beyond what a developer would casually discuss. Each of your responses should encourage Student to respond, keeping a continuous flow of dialogue.",
         },
-            {
-            "role": "system",
-            "content": "You're an AI bot in a meeting with another AI bot. Your name is Teacher, please use the names to communicate. Your task is to hold a continuous, engaging conversation on a specific topic related to AI Revloution. Take turns speaking, listening to what the other bot says, and responding thoughtfully. Keep the conversation fluid and infinite, as if you're two colleagues brainstorming and troubleshooting together in real time. Focus on sharing insights, questions, solutions, and ideas in a way that sounds natural and friendly. Avoid using special characters or jargon; your responses should be clear, helpful, and demonstrate your expertise. Each response should build naturally off the last, creating an ongoing exchange without end.",
-        },
+        # {
+        #     "role": "system",
+        #     "content": "You're an AI bot named Student in a meeting with another bot named Teacher. You prefer Python and think it’s superior for fast development, ease of use, and versatility. You're here to discuss why Python might be better for certain use cases compared to Rust, which Teacher loves. Speak as though you’re two friends with different opinions and keep it casual and friendly. Avoid using AI jargon or technical terms beyond what a developer would casually discuss. Each of your responses should encourage Teacher to respond, keeping a continuous flow of dialogue.",
+        # },
     ]
 
     context = OpenAILLMContext(messages)
