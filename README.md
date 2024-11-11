@@ -7,21 +7,26 @@ This document provides step-by-step instructions on how to set up and run a Spea
 - Python 3.x installed
 - `grpc_tools` for handling gRPC protobuf files
 - Ngrok for exposing your local server to the internet
+- Poetry for managing dependencies
 
 ## Getting Started
 
 ### Step 1: Set Up the Virtual Environment
-To begin, you need to set up a Python virtual environment and install the required dependencies.
+To begin, you need to set up the Python environment using Poetry and install the required dependencies.
 
 ```bash
-# Create a virtual environment named 'venv'
-python3 -m venv venv
+# Install Poetry if not already installed
+# For Unix/macOS:
+curl -sSL https://install.python-poetry.org | python3 -
+
+# For Windows:
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
+
+# Install the required dependencies using Poetry
+poetry install
 
 # Activate the virtual environment
-source venv/bin/activate
-
-# Install the required dependencies
-pip install -r requirements.txt
+poetry shell
 ```
 
 ### Step 2: Compile Protocol Buffers
@@ -29,17 +34,17 @@ To enable communication with MeetingBaas's API, you need to compile the `frames.
 
 ```bash
 # Compile the protobuf file
-python -m grpc_tools.protoc --proto_path=./ --python_out=./protobufs frames.proto
+poetry run python -m grpc_tools.protoc --proto_path=./protobufs --python_out=./protobufs frames.proto 
 ```
 
 ### Step 3: Set Up Environment Variables
-You need to provide the necessary credentials for MeetingBaas's API and other 3rd part tools.
+You need to provide the necessary credentials for MeetingBaas's API.
 
 ```bash
 # Copy the example environment file
 cp env.example .env
 ```
-Now, open the `.env` file and update it with your credentials.
+Now, open the `.env` file and update it with your MeetingBaas credentials.
 
 ## Running the Speaking Meeting Bot
 
@@ -49,7 +54,7 @@ Once your setup is complete, follow these steps to run the bot and connect it to
 Run the Python script to start the Speaking Meeting Bot:
 
 ```bash
-python main.py
+poetry run python meetingbaas-pipecat
 ```
 
 ### Step 2: Set Up Ngrok to Expose Local Server
@@ -66,13 +71,13 @@ Ngrok will provide you with a public URL that can be used by MeetingBaas to comm
 The final step is to run the MeetingBaas bot script to connect it with the desired meeting session.
 
 ```bash
-python scripts/meetingbaas.py
+poetry run python scripts/meetingbaas.py
 ```
 
 Now, visit the meeting URL in your browser to initiate a session and watch your bot actively participate in the meeting!
 
 ## Troubleshooting Tips
-- Ensure that you have activated the virtual environment before running any Python commands.
+- Ensure that you have activated the Poetry environment before running any Python commands.
 - If Ngrok is not running properly, check for any firewall issues that may be blocking its communication.
 - Double-check the `.env` file to make sure all necessary credentials are correctly filled in.
 
