@@ -54,7 +54,8 @@ Once your setup is complete, follow these steps to run the bot and connect it to
 Run the Python script to start the Speaking Meeting Bot:
 
 ```bash
-poetry run python meetingbaas-pipecat
+poetry run bot
+poetry run proxy
 ```
 
 ### Step 2: Set Up Ngrok to Expose Local Server
@@ -71,7 +72,7 @@ Ngrok will provide you with a public URL that can be used by MeetingBaas to comm
 The final step is to run the MeetingBaas bot script to connect it with the desired meeting session.
 
 ```bash
-poetry run python scripts/meetingbaas.py
+poetry run meetingbaas
 ```
 
 Now, visit the meeting URL in your browser to initiate a session and watch your bot actively participate in the meeting!
