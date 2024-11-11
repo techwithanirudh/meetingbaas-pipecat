@@ -52,7 +52,7 @@ def create_bot(meeting_url, ngrok_wss):
         "meeting_url": meeting_url,
         "bot_name": "Speaking AI Chatbot",
         "recording_mode": "speaker_view",
-        "bot_image": "https://utfs.io/f/N2K2zOxB65CxoosE8GXptM1saLXVc7b5jd62hE9Gq3gZPTKF",
+        "bot_image": "https://utfs.io/f/N2K2zOxB65CxVwWnZ2HhXhSAKBM4kRp6dzm5nufeIr3EZ1av",
         "entry_message": "I'm ready, you can talk to start chatting!",
         "reserved": False,
         "speech_to_text": {"provider": "Default"},
