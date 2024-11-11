@@ -17,12 +17,57 @@ from pipecat.transports.network.websocket_server import (
     WebsocketServerTransport,
 )
 
+from openai.types.chat import ChatCompletionToolParam
+
 from .runner import configure
+
+import aiohttp
+from datetime import datetime
+import pytz
 
 load_dotenv(override=True)
 
 logger.remove(0)
 logger.add(sys.stderr, level="DEBUG")
+
+
+async def get_weather(
+    function_name, tool_call_id, arguments, llm, context, result_callback
+):
+    location = arguments["location"]
+    format = arguments["format"]  # Default to Celsius if not specified
+    unit = "m" if format == "celsius" else "u"  # "m" for metric, "u" for imperial in wttr.in
+
+    url = f"https://wttr.in/{location}?format=%t+%C&{unit}"
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.status == 200:
+                weather_data = await response.text()
+                await result_callback(
+                    f"The weather in {location} is currently {weather_data} ({format.capitalize()})."
+                )
+            else:
+                await result_callback(
+                    f"Failed to fetch the weather data for {location}."
+                )
+
+
+async def get_time(
+    function_name, tool_call_id, arguments, llm, context, result_callback
+):
+    location = arguments["location"]
+
+    # Set timezone based on the provided location
+    try:
+        timezone = pytz.timezone(location)
+        current_time = datetime.now(timezone)
+        formatted_time = current_time.strftime("%Y-%m-%d %H:%M:%S")
+        await result_callback(f"The current time in {location} is {formatted_time}.")
+    except pytz.UnknownTimeZoneError:
+        await result_callback(
+            f"Invalid location specified. Could not determine time for {location}."
+        )
 
 
 async def main():
@@ -40,6 +85,50 @@ async def main():
     )
 
     llm = OpenAILLMService(api_key=os.getenv("OPENAI_API_KEY"), model="gpt-4o-mini")
+    llm.register_function("get_weather", get_weather)
+    llm.register_function("get_time", get_time)
+
+    tools = [
+        ChatCompletionToolParam(
+            type="function",
+            function={
+                "name": "get_weather",
+                "description": "Get the current weather",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "The city and state, e.g. San Francisco, CA",
+                        },
+                        "format": {
+                            "type": "string",
+                            "enum": ["celsius", "fahrenheit"],
+                            "description": "The temperature unit to use. Infer this from the users location.",
+                        },
+                    },
+                    "required": ["location", "format"],
+                },
+            },
+        ),
+        ChatCompletionToolParam(
+            type="function",
+            function={
+                "name": "get_time",
+                "description": "Get the current time for a specific location",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "The location for which to retrieve the current time (e.g., 'Asia/Kolkata', 'America/New_York')",
+                        },
+                    },
+                    "required": ["location"],
+                },
+            },
+        ),
+    ]
 
     stt = DeepgramSTTService(
         api_key=os.getenv("DEEPGRAM_API_KEY"), encoding="linear16", sample_rate=16000
@@ -58,7 +147,7 @@ async def main():
         },
     ]
 
-    context = OpenAILLMContext(messages)
+    context = OpenAILLMContext(messages, tools)
     context_aggregator = llm.create_context_aggregator(context)
 
     pipeline = Pipeline(
@@ -88,6 +177,7 @@ async def main():
 
 def start():
     asyncio.run(main())
+
 
 if __name__ == "__main__":
     start()
