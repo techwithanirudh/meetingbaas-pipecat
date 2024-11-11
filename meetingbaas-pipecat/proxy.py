@@ -8,7 +8,8 @@ from loguru import logger
 
 # Setup Loguru logger
 logger.remove()
-logger.add(sys.stderr, level="DEBUG")
+# logger.add(sys.stderr, level="DEBUG")
+logger.add(sys.stderr, level="INFO")
 
 PIPECAT_WS_URL = "ws://localhost:8765"
 AUDIO_SAMPLE_RATE = 16000
