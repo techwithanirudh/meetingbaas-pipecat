@@ -88,7 +88,7 @@ def delete_bot(bot_id):
         print("Failed to delete bot:", response.json())
 
 
-def bot_lifecycle_loop():
+def main():
     # Register the signal handler for Ctrl+C
     signal.signal(signal.SIGINT, signal_handler)
 
@@ -136,5 +136,4 @@ def bot_lifecycle_loop():
 
 
 if __name__ == "__main__":
-    print("Starting bot lifecycle management...")
-    bot_lifecycle_loop()
+    main()
