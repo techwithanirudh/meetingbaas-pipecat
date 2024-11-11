@@ -1,8 +1,3 @@
-#
-# Copyright (c) 2024, Daily
-#
-# SPDX-License-Identifier: BSD 2-Clause License
-#
 import argparse
 import os
 
@@ -13,14 +8,13 @@ async def configure(
     if not parser:
         parser = argparse.ArgumentParser(description="Pipecat SDK AI Bot")
     parser.add_argument(
-        "-s", "--system-prompt", type=str, required=False, help="Prompt of the AI Bot"
+        "--system-prompt", type=str, required=False, help="Prompt of the AI Bot"
     )
     parser.add_argument(
-        "-v",
         "--voice-id",
         type=str,
         required=False,
-        help="Daily API Key (needed to create an owner token for the room)",
+        help="Cartesia voice ID for text-to-speech conversion",
     )
 
     args, unknown = parser.parse_known_args()

@@ -9,7 +9,7 @@ packages = [{include = "meetingbaas-pipecat"}]
 
 [tool.poetry.scripts]
 bot = "meetingbaas-pipecat.bot.bot:start"
-proxy = "meetingbaas-pipecat.proxy.cli:start"
+proxy = "meetingbaas-pipecat.proxy.proxy:start"
 meetingbaas = "scripts.meetingbaas:main"
 
 [tool.poetry.dependencies]
