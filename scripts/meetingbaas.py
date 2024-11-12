@@ -37,7 +37,7 @@ def get_user_input(prompt, validator=None):
       return user_input
 
 
-def create_bot(meeting_url, ngrok_wss, bot_name, bot_image):
+def create_bot(meeting_url, ngrok_wss, bot_name, bot_image, entry_message):
   url = "https://api.meetingbaas.com/bots"
   headers = {
     "Content-Type": "application/json",
@@ -50,7 +50,7 @@ def create_bot(meeting_url, ngrok_wss, bot_name, bot_image):
     "bot_name": bot_name,
     "recording_mode": "speaker_view",
     "bot_image": bot_image,
-    "entry_message": "I'm ready, you can talk to start chatting!",
+    "entry_message": entry_message,
     "reserved": True,
     "speech_to_text": {"provider": "Default"},
     "automatic_leave": {"waiting_room_timeout": 600},
@@ -132,6 +132,7 @@ class BotManager:
       self.args.ngrok_wss,
       self.args.bot_name,
       self.args.bot_image,
+      self.args.entry_message
     )
 
     logger.info("\nOptions:")
@@ -182,7 +183,11 @@ def main():
     default="https://utfs.io/f/N2K2zOxB65Cx6UOeGHsoI9OHcetbNxLZB2ErqhAzDfFlMXYK",
     help="The image of the bot which is going to join the meeting.",
   )
-
+  parser.add_argument(
+    "--entry-message",
+    default="I'm ready, you can talk to start chatting!",
+    help="The name of the bot which is going to join the meeting.",
+  )
   args = parser.parse_args()
   logger.info("Starting application with arguments: {}", args)
 
