@@ -12,6 +12,7 @@ import asyncio
 from datetime import datetime
 from contextlib import suppress
 from typing import Dict, List, Tuple, Optional
+import json
 
 from dotenv import load_dotenv
 
@@ -27,6 +28,7 @@ def validate_url(url):
     raise ValueError("URL must start with https://")
   return url
 
+
 def get_user_input(prompt, validator=None):
   while True:
     user_input = input(prompt).strip()
@@ -37,6 +39,7 @@ def get_user_input(prompt, validator=None):
         logger.warning(f"Invalid input received: {e}")
     else:
       return user_input
+
 
 class ProcessLogger:
   def __init__(self, process_name: str, process: subprocess.Popen):
@@ -181,7 +184,10 @@ class BotProxyManager:
       description="Run bot and proxy command pairs with ngrok tunnels"
     )
     parser.add_argument(
-      "-c", "--count", type=int, required=True, help="Number of bot-proxy pairs to run"
+      "--args",
+      type=str,
+      required=True,
+      help="JSON-like structure of arguments for each iteration",
     )
     parser.add_argument(
       "-s",
@@ -191,10 +197,15 @@ class BotProxyManager:
       help="Starting port number (default: 8765)",
     )
     parser.add_argument(
-      "--meeting-url", 
-      help="The meeting URL (must start with https://)"
+      "--meeting-url", help="The meeting URL (must start with https://)"
     )
     args = parser.parse_args()
+
+    try:
+      args_list = json.loads(args.args)
+    except json.JSONDecodeError:
+      logger.error("Invalid JSON structure provided for --args")
+      return
 
     meeting_url = args.meeting_url
     if not args.meeting_url:
@@ -210,15 +221,19 @@ class BotProxyManager:
     current_port = args.start_port
 
     try:
-      logger.info(f"Starting {args.count} bot-proxy pairs with ngrok tunnels...")
+      logger.info(f"Starting {len(args_list)} bot-proxy pairs with ngrok tunnels...")
 
-      for i in range(args.count):
-        pair_num = i + 1
+      for arg_set in args_list:
+        pair_num = arg_set.get("id", 0)
+        bot_args = arg_set.get("bot", [])
+        proxy_args = arg_set.get("proxy", [])
+        meeting_args = arg_set.get("meeting", [])
 
         # Start bot
         bot_port = current_port
         bot_name = f"bot_{pair_num}"
-        bot_process = self.run_command(f"poetry run bot -p {bot_port}", bot_name)
+        bot_command = f"poetry run bot -p {bot_port} {' '.join(bot_args)}"
+        bot_process = self.run_command(bot_command, bot_name)
         if not bot_process:
           continue
 
@@ -227,10 +242,8 @@ class BotProxyManager:
         # Start proxy
         proxy_port = current_port + 1
         proxy_name = f"proxy_{pair_num}"
-        proxy_process = self.run_command(
-          f"poetry run proxy -p {proxy_port} --websocket-url ws://localhost:{bot_port}",
-          proxy_name,
-        )
+        proxy_command = f"poetry run proxy -p {proxy_port} --websocket-url ws://localhost:{bot_port} {' '.join(proxy_args)}"
+        proxy_process = self.run_command(proxy_command, proxy_name)
         if not proxy_process:
           logger.error(f"Failed to start {proxy_name}, terminating {bot_name}")
           self.processes[bot_name]["process"].terminate()
@@ -241,10 +254,8 @@ class BotProxyManager:
         if listener:
           self.listeners.append(listener)
           meeting_name = f"meeting_{pair_num}"
-          meeting_process = self.run_command(
-            f"poetry run meetingbaas --meeting-url {meeting_url} --ngrok-url {listener.url()}",
-            meeting_name,
-          )
+          meeting_command = f"poetry run meetingbaas --meeting-url {meeting_url} --ngrok-url {listener.url()} {' '.join(meeting_args)}"
+          meeting_process = self.run_command(meeting_command, meeting_name)
           if not meeting_process:
             logger.error(f"Failed to start {meeting_name}")
 
@@ -252,7 +263,7 @@ class BotProxyManager:
         await asyncio.sleep(1)
 
       logger.success(
-        f"Successfully started {args.count} bot-proxy pairs with ngrok tunnels"
+        f"Successfully started {len(args_list)} bot-proxy pairs with ngrok tunnels"
       )
       logger.info("Press Ctrl+C to stop all processes and close tunnels")
 

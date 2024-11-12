@@ -51,7 +51,7 @@ def create_bot(meeting_url, ngrok_wss, bot_name, bot_image):
     "recording_mode": "speaker_view",
     "bot_image": bot_image,
     "entry_message": "I'm ready, you can talk to start chatting!",
-    "reserved": False,
+    "reserved": True,
     "speech_to_text": {"provider": "Default"},
     "automatic_leave": {"waiting_room_timeout": 600},
     "deduplication_key": deduplication_key,
