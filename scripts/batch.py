@@ -21,6 +21,23 @@ logger.remove()
 logger.add(sys.stderr, level="INFO")
 
 
+def validate_url(url):
+  """Validates the URL format, ensuring it starts with https://"""
+  if not url.startswith("https://"):
+    raise ValueError("URL must start with https://")
+  return url
+
+def get_user_input(prompt, validator=None):
+  while True:
+    user_input = input(prompt).strip()
+    if validator:
+      try:
+        return validator(user_input)
+      except ValueError as e:
+        logger.warning(f"Invalid input received: {e}")
+    else:
+      return user_input
+
 class ProcessLogger:
   def __init__(self, process_name: str, process: subprocess.Popen):
     self.process_name = process_name
@@ -39,10 +56,7 @@ class ProcessLogger:
         if line:
           queue.put(line)
           log_msg = f"[{self.process_name}] {line}"
-          if is_error:
-            logger.error(log_msg)
-          else:
-            logger.info(log_msg)
+          print(log_msg)
     finally:
       pipe.close()
 
@@ -176,12 +190,18 @@ class BotProxyManager:
       default=8765,
       help="Starting port number (default: 8765)",
     )
+    parser.add_argument(
+      "--meeting-url", 
+      help="The meeting URL (must start with https://)"
+    )
     args = parser.parse_args()
 
-    meeting_url = input("Please enter the meeting URL: ")
-    if not meeting_url:
-      logger.error("Meeting URL is required")
-      return
+    meeting_url = args.meeting_url
+    if not args.meeting_url:
+      logger.info("Prompting for meeting URL")
+      meeting_url = get_user_input(
+        "Enter the meeting URL (must start with https://): ", validate_url
+      )
 
     if not os.getenv("NGROK_AUTHTOKEN"):
       logger.error("NGROK_AUTHTOKEN environment variable is not set")

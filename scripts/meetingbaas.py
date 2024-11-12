@@ -1,15 +1,22 @@
 import requests
 import os
+import sys
 import uuid
 import time
 import signal
 import argparse
 from dotenv import load_dotenv
+from loguru import logger
+
+logger.remove()
+logger.add(sys.stderr, level="INFO")
 
 # Load environment variables from .env file
 load_dotenv()
 API_KEY = os.getenv("MEETING_BAAS_API_KEY")
-
+if not API_KEY:
+  logger.error("MEETING_BAAS_API_KEY not found in environment variables")
+  exit(1)
 
 def validate_url(url):
   """Validates the URL format, ensuring it starts with https://"""
@@ -25,7 +32,7 @@ def get_user_input(prompt, validator=None):
       try:
         return validator(user_input)
       except ValueError as e:
-        print(f"Invalid input: {e}")
+        logger.warning(f"Invalid input received: {e}")
     else:
       return user_input
 
@@ -51,11 +58,18 @@ def create_bot(meeting_url, ngrok_wss, bot_name, bot_image):
     "streaming": {"input": ngrok_wss, "output": ngrok_wss},
   }
 
+  logger.info(f"Creating bot with name: {bot_name}")
+  logger.debug(f"Bot configuration: {config}")
+
   response = requests.post(url, json=config, headers=headers)
   if response.status_code == 200:
-    return response.json().get("bot_id")
+    bot_id = response.json().get("bot_id")
+    logger.success(f"Bot created successfully with ID: {bot_id}")
+    return bot_id
   else:
-    raise Exception(f"Failed to create bot: {response.json()}")
+    error_msg = f"Failed to create bot: {response.json()}"
+    logger.error(error_msg)
+    raise Exception(error_msg)
 
 
 def delete_bot(bot_id):
@@ -64,18 +78,26 @@ def delete_bot(bot_id):
     "Content-Type": "application/json",
     "x-meeting-baas-api-key": API_KEY,
   }
+
+  logger.info(f"Attempting to delete bot with ID: {bot_id}")
   response = requests.delete(delete_url, headers=headers)
 
   if response.status_code != 200:
-    raise Exception(f"Failed to delete bot: {response.json()}")
+    error_msg = f"Failed to delete bot: {response.json()}"
+    logger.error(error_msg)
+    raise Exception(error_msg)
+  else:
+    logger.success(f"Bot {bot_id} deleted successfully")
 
 
 class BotManager:
   def __init__(self, args):
     self.args = args
     self.current_bot_id = None
+    logger.info("BotManager initialized with args: {}", args)
 
   def run(self):
+    logger.info("Starting BotManager")
     signal.signal(signal.SIGINT, self.signal_handler)
 
     while True:
@@ -83,21 +105,26 @@ class BotManager:
         self.get_or_update_urls()
         self.create_and_manage_bot()
       except Exception as e:
-        print(f"An error occurred: {e}")
+        logger.exception(f"An error occurred during bot management: {e}")
         if self.current_bot_id:
           self.delete_current_bot()
         time.sleep(5)
 
   def get_or_update_urls(self):
     if not self.args.meeting_url:
+      logger.info("Prompting for meeting URL")
       self.args.meeting_url = get_user_input(
         "Enter the meeting URL (must start with https://): ", validate_url
       )
     if not self.args.ngrok_url:
+      logger.info("Prompting for ngrok URL")
       self.args.ngrok_url = get_user_input(
         "Enter the ngrok URL (must start with https://): ", validate_url
       )
     self.args.ngrok_wss = "wss://" + self.args.ngrok_url[8:]
+    logger.debug(
+      f"URLs configured - Meeting: {self.args.meeting_url}, WSS: {self.args.ngrok_wss}"
+    )
 
   def create_and_manage_bot(self):
     self.current_bot_id = create_bot(
@@ -106,16 +133,19 @@ class BotManager:
       self.args.bot_name,
       self.args.bot_image,
     )
-    print(f"Bot created successfully with bot_id: {self.current_bot_id}")
 
-    print("\nPress Enter to respawn bot with same URLs")
-    print("Enter 'n' to input new URLs")
-    print("Press Ctrl+C to exit")
+    logger.info("\nOptions:")
+    logger.info("- Press Enter to respawn bot with same URLs")
+    logger.info("- Enter 'n' to input new URLs")
+    logger.info("- Press Ctrl+C to exit")
+
     user_choice = input().strip().lower()
+    logger.debug(f"User selected option: {user_choice}")
 
     self.delete_current_bot()
 
     if user_choice == "n":
+      logger.info("User requested new URLs")
       self.args.meeting_url = None
       self.args.ngrok_url = None
 
@@ -123,16 +153,16 @@ class BotManager:
     if self.current_bot_id:
       try:
         delete_bot(self.current_bot_id)
-        print(f"Bot with bot_id {self.current_bot_id} deleted successfully.")
       except Exception as e:
-        print(f"Error deleting bot: {e}")
+        logger.exception(f"Error deleting bot: {e}")
       finally:
         self.current_bot_id = None
 
   def signal_handler(self, signum, frame):
-    print("\nCtrl+C detected. Cleaning up...")
+    logger.warning("Ctrl+C detected, initiating cleanup...")
     self.delete_current_bot()
-    print("Bot cleaned up. Exiting...")
+    logger.success("Bot cleaned up successfully")
+    logger.info("Exiting...")
     exit(0)
 
 
@@ -154,6 +184,7 @@ def main():
   )
 
   args = parser.parse_args()
+  logger.info("Starting application with arguments: {}", args)
 
   bot_manager = BotManager(args)
   bot_manager.run()
